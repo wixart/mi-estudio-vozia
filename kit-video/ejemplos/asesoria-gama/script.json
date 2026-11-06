@@ -1,0 +1,16 @@
+{
+  "client": "Asesoría Gama",
+  "title": "Jubilación 2027",
+  "voice_style": "Lee en español de España, con voz cercana, clara y segura, como una asesora que explica algo útil en redes sociales. Ritmo ágil pero sin prisa, entonación natural, sin exagerar. Haz una pausa breve entre cada bloque.",
+  "voice": "Kore",
+  "scenes": [
+    {"id": "hook",       "text": "En 2027 se acaba la transición. La edad de jubilación queda *fija*."},
+    {"id": "edad",       "text": "Si tienes *38 años y 6 meses* cotizados o más, te jubilas a los *65*. Si no llegas, a los *67*."},
+    {"id": "requisitos", "text": "Pero antes, lo básico: estar de *alta*, o en situación asimilada. Tener al menos *15 años* cotizados. Y ojo: *2* de ellos, dentro de los últimos 15."},
+    {"id": "anticipada", "text": "¿Quieres adelantarla? La anticipada *voluntaria* permite hasta 2 años antes. La *involuntaria*, hasta 4, en los supuestos que marca la ley. Eso sí: la pensión se *reduce* con coeficientes."},
+    {"id": "demorada",   "text": "Si la retrasas, tienes *incentivos*: un porcentaje extra en la pensión, una cantidad a tanto alzado, o una fórmula mixta."},
+    {"id": "calculo",    "text": "¿Y cuánto cobrarás? Depende de tu *base reguladora* y de los años cotizados. Y en 2027 sigue, poco a poco, la *reforma* de su cálculo."},
+    {"id": "aviso",      "text": "Hay excepciones, y cada vida laboral es distinta. Revisa *tu caso* antes de decidir."},
+    {"id": "cta",        "text": "En *Asesoría Gama* te ayudamos. Escríbenos y lo vemos juntos."}
+  ]
+}
