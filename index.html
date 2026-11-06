@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3B2E">
+<title>Estudio de Voz</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root { --bg:#F6F1EA; --card:#fff; --ink:#1E1E1E; --muted:#6C6C6C; --green:#1F3B2E; --accent:#C0805F; --line:#E6DED3; --red:#C2412B; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink);
+         padding: calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 30px); }
+  header { display:flex; align-items:center; gap:10px; margin:4px 2px 14px; }
+  header .logo { width:38px; height:38px; border-radius:11px; background:var(--green); color:#fff; display:grid; place-items:center; font-weight:800; }
+  header h1 { font-size:20px; margin:0; } header p { margin:0; color:var(--muted); font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; }
+  .card h2 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--green); margin:0 0 10px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 5px; }
+  input, select, textarea { width:100%; font:inherit; font-size:16px; padding:11px 12px; border:1px solid var(--line); border-radius:11px; background:#FCFAF7; color:var(--ink); }
+  textarea { min-height:150px; resize:vertical; line-height:1.4; }
+  .row { display:flex; gap:8px; } .row > * { flex:1; }
+  button { font:inherit; font-weight:650; font-size:15px; border:0; border-radius:12px; padding:13px 14px; cursor:pointer; background:#EDE5DA; color:var(--ink); }
+  button.primary { background:var(--green); color:#fff; width:100%; font-size:17px; padding:16px; }
+  button:disabled { opacity:.5; }
+  .muted { color:var(--muted); font-size:13px; }
+  .pill { display:inline-block; font-size:12px; padding:3px 9px; border-radius:99px; background:#EEF3EF; color:var(--green); margin:2px 4px 2px 0; }
+  .take { border:1px solid var(--line); border-radius:13px; padding:11px; margin-top:10px; background:#FCFAF7; }
+  .take.best { border-color:var(--green); box-shadow:0 0 0 2px #1F3B2E22; }
+  .take audio { width:100%; margin:8px 0; }
+  .take .meta { display:flex; justify-content:space-between; font-size:13px; color:var(--muted); }
+  .take .actions { display:flex; gap:6px; flex-wrap:wrap; } .take .actions button { flex:1; padding:11px 8px; font-size:14px; }
+  .err { color:var(--red); font-size:14px; white-space:pre-wrap; margin-top:8px; }
+  .status { font-size:14px; margin-top:10px; color:var(--green); min-height:20px; }
+  details summary { cursor:pointer; color:var(--green); font-weight:600; font-size:14px; }
+  .scenes { font-size:13px; color:var(--muted); margin-top:6px; }
+  .spin { display:inline-block; width:14px; height:14px; border:2px solid #1F3B2E33; border-top-color:var(--green); border-radius:50%; animation: s .8s linear infinite; vertical-align:-2px; margin-right:6px; }
+  @keyframes s { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🎙</div>
+  <div><h1>Estudio de Voz</h1><p>Locuciones con Gemini TTS para tus vídeos</p></div>
+</header>
+
+<section class="card">
+  <h2>1 · Guion</h2>
+  <p class="muted">Pega aquí el <b>paquete de voz</b> que te da Claude (JSON) o texto normal. Si es JSON, la voz y el estilo se rellenan solos.</p>
+  <textarea id="pack" placeholder='{"voice":"Kore","voice_style":"...","text":"..."}'></textarea>
+  <div class="row" style="margin-top:8px">
+    <button id="pasteBtn" type="button">📋 Pegar</button>
+    <button id="clearBtn" type="button">Borrar</button>
+  </div>
+  <div id="packInfo" class="scenes"></div>
+</section>
+
+<section class="card">
+  <h2>2 · Voz y estilo</h2>
+  <div class="row">
+    <div><label for="voice">Voz</label><select id="voice"></select></div>
+    <div><label for="model">Modelo</label><select id="model">
+      <option value="gemini-3.1-flash-tts-preview">3.1 Flash TTS</option>
+      <option value="gemini-2.5-flash-preview-tts">2.5 Flash TTS</option>
+      <option value="gemini-2.5-pro-preview-tts">2.5 Pro TTS</option>
+      <option value="custom">Otro…</option>
+    </select></div>
+  </div>
+  <input id="customModel" placeholder="nombre-del-modelo-tts" style="display:none;margin-top:8px">
+  <label for="style">Indicaciones de interpretación</label>
+  <textarea id="style" style="min-height:90px"></textarea>
+  <button id="sampleBtn" type="button" style="width:100%;margin-top:8px">▶︎ Probar esta voz (frase corta)</button>
+  <audio id="sampleAudio" controls style="width:100%;margin-top:8px;display:none"></audio>
+</section>
+
+<section class="card">
+  <h2>3 · Generar</h2>
+  <button id="genBtn" class="primary" type="button">Generar locución</button>
+  <div id="status" class="status"></div>
+  <div id="err" class="err"></div>
+  <p class="muted">Todo el guion se genera en <b>una sola toma</b> para que la voz suene igual de principio a fin. Haz 2–3 tomas y quédate con la mejor.</p>
+  <div id="takes"></div>
+</section>
+
+<section class="card">
+  <details>
+    <summary>⚙︎ Clave de API de Gemini</summary>
+    <label for="key">API key (se guarda solo en este móvil)</label>
+    <input id="key" type="password" autocomplete="off" placeholder="AIza…">
+    <p class="muted">Consíguela en Google AI Studio → «Get API key». No se envía a ningún sitio salvo a la API de Google.</p>
+  </details>
+</section>
+
+<script>
+const VOICES = [["Kore","firme"],["Charon","informativa"],["Puck","animada"],["Zephyr","luminosa"],["Fenrir","enérgica"],["Leda","juvenil"],["Orus","firme"],["Aoede","fresca"],["Callirrhoe","tranquila"],["Autonoe","luminosa"],["Enceladus","susurrante"],["Iapetus","clara"],["Umbriel","relajada"],["Algieba","suave"],["Despina","suave"],["Erinome","clara"],["Algenib","grave"],["Rasalgethi","informativa"],["Laomedeia","animada"],["Achernar","suave"],["Alnilam","firme"],["Schedar","equilibrada"],["Gacrux","madura"],["Pulcherrima","directa"],["Achird","amable"],["Zubenelgenubi","informal"],["Vindemiatrix","delicada"],["Sadachbia","vivaz"],["Sadaltager","experta"],["Sulafat","cálida"]];
+const $ = id => document.getElementById(id);
+const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+VOICES.forEach(([n, d]) => { const o = document.createElement('option'); o.value = n; o.textContent = `${n} · ${d}`; $('voice').appendChild(o); });
+$('key').value = store.get('gemini_key', '');
+if (!$('key').value) document.querySelector('details').open = true;
+$('voice').value = store.get('voice', 'Kore');
+$('model').value = store.get('model', 'gemini-3.1-flash-tts-preview');
+$('customModel').value = store.get('customModel', '');
+$('style').value = store.get('style', 'Lee en español de España, con voz cercana, clara y segura. Ritmo ágil pero sin prisa, entonación natural. Haz una pausa breve entre cada bloque.');
+$('pack').value = store.get('pack', '');
+const toggleCustom = () => $('customModel').style.display = $('model').value === 'custom' ? 'block' : 'none'; toggleCustom();
+['key', 'voice', 'model', 'customModel', 'style', 'pack'].forEach(id => $(id).addEventListener('change', () => { store.set(id === 'key' ? 'gemini_key' : id, $(id).value); toggleCustom(); }));
+
+let parsed = { text: '' };
+function parsePack() {
+  const raw = $('pack').value.trim(); store.set('pack', $('pack').value);
+  parsed = { text: raw };
+  if (raw.startsWith('{')) {
+    try {
+      const j = JSON.parse(raw);
+      let text = j.text || '';
+      if (!text && Array.isArray(j.scenes)) text = j.scenes.map(s => (s.text || '').replace(/\*/g, '')).join('\n\n');
+      parsed = { text, voice: j.voice, style: j.voice_style, title: j.title, model: j.model };
+      if (j.voice && VOICES.some(v => v[0] === j.voice)) { $('voice').value = j.voice; store.set('voice', j.voice); }
+      if (j.voice_style) { $('style').value = j.voice_style; store.set('style', j.voice_style); }
+      if (j.model) { const opt = [...$('model').options].some(o => o.value === j.model); if (opt) $('model').value = j.model; else { $('model').value = 'custom'; $('customModel').value = j.model; } toggleCustom(); }
+    } catch (e) { $('packInfo').textContent = '⚠︎ El JSON no es válido: ' + e.message; return; }
+  }
+  const words = parsed.text.split(/\s+/).filter(Boolean).length, blocks = parsed.text.split(/\n\s*\n/).filter(s => s.trim()).length;
+  $('packInfo').innerHTML = parsed.text ? `${parsed.title ? `<span class="pill">${parsed.title}</span>` : ''}<span class="pill">${blocks} bloques</span><span class="pill">${words} palabras</span><span class="pill">≈ ${Math.round(words / 2.6)} s</span>` : '';
+}
+$('pack').addEventListener('input', parsePack); parsePack();
+$('pasteBtn').onclick = async () => { try { $('pack').value = await navigator.clipboard.readText(); parsePack(); } catch { $('pack').focus(); $('err').textContent = 'No se pudo leer el portapapeles: mantén pulsado el cuadro y elige «Pegar».'; } };
+$('clearBtn').onclick = () => { $('pack').value = ''; parsePack(); };
+
+const model = () => $('model').value === 'custom' ? $('customModel').value.trim() : $('model').value;
+
+/* --- llamada a Gemini TTS: devuelve PCM 16 bits mono --- */
+async function tts(text, style, voice) {
+  const key = $('key').value.trim();
+  if (!key) { document.querySelector('details').open = true; throw new Error('Falta la API key de Gemini (abajo, en ⚙︎).'); }
+  const prompt = `${style.trim()}\n\nLee exactamente este texto, sin añadir ni quitar nada:\n\n${text.trim()}`;
+  const body = { contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } } };
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model())}:generateContent`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { lastErr = new Error(`Error ${r.status}: ${j.error?.message || r.statusText}`); if (r.status >= 500 || r.status === 429) { await new Promise(s => setTimeout(s, 1500 * attempt)); continue; } throw lastErr; }
+    const part = j.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+    if (!part) { lastErr = new Error('La API no devolvió audio (' + (j.candidates?.[0]?.finishReason || 'sin motivo') + '). Reintentando…'); continue; }
+    const rate = +(/rate=(\d+)/.exec(part.inlineData.mimeType || '')?.[1] || 24000);
+    const bin = atob(part.inlineData.data); const pcm = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) pcm[i] = bin.charCodeAt(i);
+    return { pcm, rate };
+  }
+  throw lastErr;
+}
+function wav(pcm, rate) {
+  const h = new DataView(new ArrayBuffer(44)); const w = (o, s) => [...s].forEach((c, i) => h.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); h.setUint32(4, 36 + pcm.length, true); w(8, 'WAVE'); w(12, 'fmt '); h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, 1, true);
+  h.setUint32(24, rate, true); h.setUint32(28, rate * 2, true); h.setUint16(32, 2, true); h.setUint16(34, 16, true); w(36, 'data'); h.setUint32(40, pcm.length, true);
+  return new Blob([h.buffer, pcm], { type: 'audio/wav' });
+}
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+function busy(on, msg = '') { $('genBtn').disabled = on; $('sampleBtn').disabled = on; $('status').innerHTML = on ? `<span class="spin"></span>${msg}` : msg; }
+
+$('sampleBtn').onclick = async () => {
+  $('err').textContent = ''; busy(true, 'Generando muestra…');
+  try { const { pcm, rate } = await tts('Hola, esta es una prueba de voz para tu próximo vídeo.', $('style').value, $('voice').value);
+    const a = $('sampleAudio'); a.src = URL.createObjectURL(wav(pcm, rate)); a.style.display = 'block'; a.play().catch(() => {}); busy(false, ''); }
+  catch (e) { busy(false, ''); $('err').textContent = e.message; }
+};
+
+let n = 0;
+$('genBtn').onclick = async () => {
+  parsePack(); $('err').textContent = '';
+  if (!parsed.text.trim()) { $('err').textContent = 'Pega primero el guion.'; return; }
+  const voice = $('voice').value; busy(true, 'Generando locución (puede tardar 20–60 s)…');
+  try {
+    const { pcm, rate } = await tts(parsed.text, $('style').value, voice);
+    const blob = wav(pcm, rate), secs = pcm.length / 2 / rate, url = URL.createObjectURL(blob);
+    const name = `${(parsed.title || 'locucion').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')}_${voice}_toma${++n}.wav`;
+    const file = new File([blob], name, { type: 'audio/wav' });
+    const el = document.createElement('div'); el.className = 'take';
+    el.innerHTML = `<div class="meta"><b>Toma ${n} · ${voice}</b><span>${fmt(secs)}</span></div><audio controls src="${url}"></audio>
+      <div class="actions"><button data-a="share">📤 Compartir</button><button data-a="dl">⬇︎ Descargar</button><button data-a="best">★ Mejor</button></div>`;
+    el.querySelector('[data-a=dl]').onclick = () => { const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
+    el.querySelector('[data-a=share]').onclick = async () => {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); } catch {} }
+      else el.querySelector('[data-a=dl]').click();
+    };
+    el.querySelector('[data-a=best]').onclick = () => { document.querySelectorAll('.take').forEach(t => t.classList.remove('best')); el.classList.add('best'); };
+    $('takes').prepend(el); busy(false, `✓ Toma ${n} lista (${fmt(secs)}). Escúchala y envíasela a Claude.`);
+  } catch (e) { busy(false, ''); $('err').textContent = e.message; }
+};
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
